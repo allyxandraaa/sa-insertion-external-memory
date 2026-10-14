@@ -41,6 +41,10 @@ public final class BufferPool implements AutoCloseable {
     private boolean closed;
 
     public BufferPool(BlockFile file, MemoryBudget budget, long poolBytes) {
+        if (poolBytes % file.blockSize() != 0) {
+            throw new IllegalArgumentException(
+                    "Pool size " + poolBytes + " is not a multiple of block size " + file.blockSize());
+        }
         long count = poolBytes / file.blockSize();
         if (count < 1 || count > Integer.MAX_VALUE) {
             throw new IllegalArgumentException(

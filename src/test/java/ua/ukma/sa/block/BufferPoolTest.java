@@ -210,7 +210,7 @@ class BufferPoolTest {
     void poolReservesAndReleasesMemoryInBudget() throws IOException {
         MemoryBudget budget = new MemoryBudget(6 * B);
         try (BlockFile file = newFile(10)) {
-            BufferPool pool = new BufferPool(file, budget, 4 * B + 5);
+            BufferPool pool = new BufferPool(file, budget, 4 * B);
             assertEquals(4, pool.frameCount());
             assertEquals(4 * B, budget.used());
 
@@ -230,6 +230,16 @@ class BufferPoolTest {
         try (BlockFile file = newFile(10)) {
             assertThrows(IllegalArgumentException.class,
                     () -> new BufferPool(file, new MemoryBudget(10 * B), B - 1));
+        }
+    }
+
+    @Test
+    void poolSizeNotMultipleOfBlockSizeIsRejected() throws IOException {
+        MemoryBudget budget = new MemoryBudget(10 * B);
+        try (BlockFile file = newFile(10)) {
+            assertThrows(IllegalArgumentException.class, () -> new BufferPool(file, budget, 4 * B + 5));
+            assertThrows(IllegalArgumentException.class, () -> new BufferPool(file, budget, 2 * B - 1));
+            assertEquals(0, budget.used());
         }
     }
 
