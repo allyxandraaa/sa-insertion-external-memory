@@ -10,9 +10,6 @@ public abstract class ExternalArray {
     private static final int LENGTH_OFFSET = Integer.BYTES;
     private static final int HEADER_BYTES = Integer.BYTES + Long.BYTES;
     private static final long HEADER_BLOCK = 0;
-    private static final int META_OFFSET = HEADER_BYTES;
-
-    public static final int MIN_BLOCK_WITH_META = META_OFFSET + Long.BYTES;
 
     final BufferPool pool;
     final int blockSize;
@@ -36,33 +33,6 @@ public abstract class ExternalArray {
 
     public final void flush() throws IOException {
         pool.flush();
-    }
-
-    public final long readMeta() throws IOException {
-        requireMetaFits();
-        BufferPool.Frame header = pool.pin(HEADER_BLOCK);
-        try {
-            return header.buffer().getLong(META_OFFSET);
-        } finally {
-            pool.unpin(HEADER_BLOCK, false);
-        }
-    }
-
-    public final void writeMeta(long value) throws IOException {
-        requireMetaFits();
-        BufferPool.Frame header = pool.pin(HEADER_BLOCK);
-        try {
-            header.buffer().putLong(META_OFFSET, value);
-        } finally {
-            pool.unpin(HEADER_BLOCK, true);
-        }
-    }
-
-    private void requireMetaFits() {
-        if (blockSize < MIN_BLOCK_WITH_META) {
-            throw new IllegalArgumentException(
-                    "Block size " + blockSize + " is too small for a header value, need " + MIN_BLOCK_WITH_META);
-        }
     }
 
     final long blockOf(long index) {

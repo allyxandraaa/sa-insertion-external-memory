@@ -5,11 +5,12 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.util.Arrays;
-import ua.ukma.sa.array.ExternalArray;
+import java.util.stream.LongStream;
 import ua.ukma.sa.array.ExternalByteArray;
 import ua.ukma.sa.block.BufferPool;
 import ua.ukma.sa.block.IoStats;
 import ua.ukma.sa.block.MemoryBudget;
+import ua.ukma.sa.matching.KmpMatcher;
 
 public final class InsertionBuffer {
 
@@ -20,47 +21,16 @@ public final class InsertionBuffer {
     private long usedBytes;
     private long recordCount;
 
-    private InsertionBuffer(ExternalByteArray bytes, long usedBytes, long recordCount) {
+    private InsertionBuffer(ExternalByteArray bytes) {
         this.bytes = bytes;
         this.capacityBytes = bytes.length();
-        this.usedBytes = usedBytes;
-        this.recordCount = recordCount;
     }
 
     public static InsertionBuffer create(BufferPool pool, long capacityBytes) throws IOException {
         if (capacityBytes <= 0) {
             throw new IllegalArgumentException("Capacity must be positive: " + capacityBytes);
         }
-        requireBlockSize(pool);
-        ExternalByteArray bytes = ExternalByteArray.create(pool, capacityBytes);
-        bytes.writeMeta(0);
-        return new InsertionBuffer(bytes, 0, 0);
-    }
-
-    public static InsertionBuffer open(BufferPool pool, MemoryBudget budget) throws IOException {
-        requireBlockSize(pool);
-        ExternalByteArray bytes = ExternalByteArray.open(pool);
-        long used = bytes.readMeta();
-        if (used < 0 || used > bytes.length()) {
-            throw new IOException("Stored size " + used + " is outside [0, " + bytes.length() + "]");
-        }
-        long records = 0;
-        int last = -1;
-        try (ByteBlockScanner scanner = new ByteBlockScanner(bytes, budget, used)) {
-            ByteBuffer block;
-            while ((block = scanner.next()) != null) {
-                for (int i = 0; i < block.limit(); i++) {
-                    last = block.get(i);
-                    if (last == TERMINATOR) {
-                        records++;
-                    }
-                }
-            }
-        }
-        if (used > 0 && last != TERMINATOR) {
-            throw new IOException("Insertion buffer does not end with a record terminator");
-        }
-        return new InsertionBuffer(bytes, used, records);
+        return new InsertionBuffer(ExternalByteArray.create(pool, capacityBytes));
     }
 
     public boolean append(String record) throws IOException {
@@ -68,14 +38,7 @@ public final class InsertionBuffer {
     }
 
     public boolean append(byte[] record) throws IOException {
-        if (record.length == 0) {
-            throw new IllegalArgumentException("Empty record");
-        }
-        for (byte b : record) {
-            if (b == TERMINATOR) {
-                throw new IllegalArgumentException("Record contains the line terminator");
-            }
-        }
+        requireValid(record, "Record");
         long storedLength = (long) record.length + 1;
         if (storedLength > capacityBytes - usedBytes) {
             return false;
@@ -85,7 +48,6 @@ public final class InsertionBuffer {
         bytes.writeAtEnd(usedBytes, stored, stored.length);
         usedBytes += storedLength;
         recordCount++;
-        bytes.writeMeta(usedBytes);
         return true;
     }
 
@@ -113,11 +75,36 @@ public final class InsertionBuffer {
         return new ByteBlockScanner(bytes, budget, usedBytes);
     }
 
-    private static void requireBlockSize(BufferPool pool) {
-        int blockSize = pool.file().blockSize();
-        if (blockSize < ExternalArray.MIN_BLOCK_WITH_META) {
-            throw new IllegalArgumentException(
-                    "Block size " + blockSize + " is smaller than " + ExternalArray.MIN_BLOCK_WITH_META);
+    public long[] findAll(String pattern, MemoryBudget budget) throws IOException {
+        return findAll(Normalizer.normalize(pattern, Normalizer.Form.NFC).getBytes(StandardCharsets.UTF_8), budget);
+    }
+
+    public long[] findAll(byte[] pattern, MemoryBudget budget) throws IOException {
+        requireValid(pattern, "Pattern");
+        KmpMatcher matcher = new KmpMatcher(pattern);
+        LongStream.Builder found = LongStream.builder();
+        long position = 0;
+        try (ByteBlockScanner scanner = scanner(budget)) {
+            ByteBuffer block;
+            while ((block = scanner.next()) != null) {
+                for (int i = 0; i < block.limit(); i++, position++) {
+                    if (matcher.feed(block.get(i))) {
+                        found.add(position - pattern.length + 1);
+                    }
+                }
+            }
+        }
+        return found.build().toArray();
+    }
+
+    private static void requireValid(byte[] value, String what) {
+        if (value.length == 0) {
+            throw new IllegalArgumentException(what + " is empty");
+        }
+        for (byte b : value) {
+            if (b == TERMINATOR) {
+                throw new IllegalArgumentException(what + " contains the line terminator");
+            }
         }
     }
 }

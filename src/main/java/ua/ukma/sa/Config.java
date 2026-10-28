@@ -10,7 +10,7 @@ public final class Config {
     public static final int MEMORY_BLOCKS = 256;
     public static final long MEMORY_LIMIT_BYTES = bytes(MEMORY_BLOCKS);
 
-    public static final int BUFFER_POOL_FRAMES = 3;
+    public static final int BUFFER_POOL_FRAMES = 1;
     public static final int SCANNER_BLOCKS = 1;
 
     private static final int POOL_BLOCKS = MEMORY_BLOCKS - BUFFER_POOL_FRAMES - SCANNER_BLOCKS;
