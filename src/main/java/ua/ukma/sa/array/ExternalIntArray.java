@@ -1,6 +1,7 @@
-package ua.ukma.sa.block;
+package ua.ukma.sa.array;
 
 import java.io.IOException;
+import ua.ukma.sa.block.BufferPool;
 
 public final class ExternalIntArray extends ExternalArray {
 

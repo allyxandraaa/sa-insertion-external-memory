@@ -1,7 +1,8 @@
-package ua.ukma.sa.block;
+package ua.ukma.sa.array;
 
 import java.io.IOException;
 import java.util.Objects;
+import ua.ukma.sa.block.BufferPool;
 
 public final class ExternalByteArray extends ExternalArray {
 
@@ -62,6 +63,28 @@ public final class ExternalByteArray extends ExternalArray {
             int inBlock = offsetOf(position);
             int chunk = Math.min(len - done, blockSize - inBlock);
             BufferPool.Frame frame = pool.pin(blockId);
+            try {
+                frame.buffer().put(inBlock, src, done, chunk);
+            } finally {
+                pool.unpin(blockId, true);
+            }
+            position += chunk;
+            done += chunk;
+        }
+    }
+
+    public void writeAtEnd(long end, byte[] src, int len) throws IOException {
+        Objects.checkFromIndexSize(end, len, length());
+        Objects.checkFromIndexSize(0, len, src.length);
+        long usedDataBlocks = (end + blockSize - 1) / blockSize;
+        long firstEmptyBlock = 1 + usedDataBlocks;
+        long position = end;
+        int done = 0;
+        while (done < len) {
+            long blockId = blockOf(position);
+            int inBlock = offsetOf(position);
+            int chunk = Math.min(len - done, blockSize - inBlock);
+            BufferPool.Frame frame = blockId >= firstEmptyBlock ? pool.pinNew(blockId) : pool.pin(blockId);
             try {
                 frame.buffer().put(inBlock, src, done, chunk);
             } finally {

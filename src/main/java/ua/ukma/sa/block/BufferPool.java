@@ -3,6 +3,7 @@ package ua.ukma.sa.block;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,6 +59,14 @@ public final class BufferPool implements AutoCloseable {
     }
 
     public Frame pin(long blockId) throws IOException {
+        return pin(blockId, true);
+    }
+
+    public Frame pinNew(long blockId) throws IOException {
+        return pin(blockId, false);
+    }
+
+    private Frame pin(long blockId, boolean readFromDisk) throws IOException {
         if (closed) {
             throw new IllegalStateException("Pool is closed");
         }
@@ -73,7 +82,12 @@ public final class BufferPool implements AutoCloseable {
         }
         misses++;
         ByteBuffer buffer = acquireBuffer();
-        file.read(blockId, buffer);
+        if (readFromDisk) {
+            file.read(blockId, buffer);
+        } else {
+            Arrays.fill(buffer.array(), (byte) 0);
+            buffer.clear();
+        }
         Frame loaded = new Frame(blockId, buffer);
         loaded.pinCount = 1;
         frames.put(blockId, loaded);
@@ -115,7 +129,7 @@ public final class BufferPool implements AutoCloseable {
         return frameCount;
     }
 
-    BlockFile file() {
+    public BlockFile file() {
         return file;
     }
 

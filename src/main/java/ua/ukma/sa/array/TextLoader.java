@@ -1,9 +1,11 @@
-package ua.ukma.sa.block;
+package ua.ukma.sa.array;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import ua.ukma.sa.block.BufferPool;
+import ua.ukma.sa.block.MemoryBudget;
 
 public final class TextLoader {
 
