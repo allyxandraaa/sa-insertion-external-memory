@@ -51,6 +51,11 @@ public final class InsertionBuffer {
         return true;
     }
 
+    public void clear() {
+        usedBytes = 0;
+        recordCount = 0;
+    }
+
     public long sizeBytes() {
         return usedBytes;
     }

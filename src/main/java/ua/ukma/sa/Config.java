@@ -10,10 +10,13 @@ public final class Config {
     public static final int MEMORY_BLOCKS = 256;
     public static final long MEMORY_LIMIT_BYTES = bytes(MEMORY_BLOCKS);
 
-    public static final int BUFFER_POOL_FRAMES = 1;
+    public static final int INSERTION_BUFFER_CAPACITY_BLOCKS = 64;
+    public static final long INSERTION_BUFFER_CAPACITY_BYTES = bytes(INSERTION_BUFFER_CAPACITY_BLOCKS);
+
+    public static final int INSERTION_BUFFER_POOL_FRAMES = 1;
     public static final int SCANNER_BLOCKS = 1;
 
-    private static final int POOL_BLOCKS = MEMORY_BLOCKS - BUFFER_POOL_FRAMES - SCANNER_BLOCKS;
+    private static final int POOL_BLOCKS = MEMORY_BLOCKS - INSERTION_BUFFER_POOL_FRAMES - SCANNER_BLOCKS;
     public static final int TEXT_POOL_FRAMES = POOL_BLOCKS / 2;
     public static final int SA_POOL_FRAMES = POOL_BLOCKS - TEXT_POOL_FRAMES;
 

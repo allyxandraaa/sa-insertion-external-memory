@@ -51,7 +51,7 @@ public final class Main {
         };
 
         try (BlockFile file = BlockFile.create(Config.DATA_DIR.resolve("demo-buffer.bin"), blockSize);
-                BufferPool pool = new BufferPool(file, budget, (long) Config.BUFFER_POOL_FRAMES * blockSize)) {
+                BufferPool pool = new BufferPool(file, budget, (long) Config.INSERTION_BUFFER_POOL_FRAMES * blockSize)) {
             InsertionBuffer buffer = InsertionBuffer.create(pool, 10L * blockSize);
             System.out.printf("capacity %d bytes, block size %d bytes%n", buffer.capacityBytes(), blockSize);
 
@@ -69,6 +69,10 @@ public final class Main {
                         pattern, positions.length, Arrays.toString(positions));
                 log("  search cost", file);
             }
+
+            buffer.clear();
+            System.out.printf("clear: used=%d bytes, records=%d, find Київ count=%d%n",
+                    buffer.sizeBytes(), buffer.recordCount(), buffer.findAll("Київ", budget).length);
         }
     }
 
