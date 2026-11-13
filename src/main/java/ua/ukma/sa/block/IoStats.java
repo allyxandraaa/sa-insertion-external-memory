@@ -16,6 +16,14 @@ public final class IoStats {
             return reads() + writes();
         }
 
+        public Snapshot plus(Snapshot other) {
+            return new Snapshot(
+                    sequentialReads + other.sequentialReads,
+                    randomReads + other.randomReads,
+                    sequentialWrites + other.sequentialWrites,
+                    randomWrites + other.randomWrites);
+        }
+
         public Snapshot minus(Snapshot other) {
             return new Snapshot(
                     sequentialReads - other.sequentialReads,

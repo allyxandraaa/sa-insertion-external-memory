@@ -16,6 +16,8 @@ public final class Config {
     public static final int INSERTION_BUFFER_POOL_FRAMES = 1;
     public static final int SCANNER_BLOCKS = 1;
 
+    public static final int CONSTRUCTION_POOL_FRAMES = 2;
+
     private static final int POOL_BLOCKS = MEMORY_BLOCKS - INSERTION_BUFFER_POOL_FRAMES - SCANNER_BLOCKS;
     public static final int TEXT_POOL_FRAMES = POOL_BLOCKS / 2;
     public static final int SA_POOL_FRAMES = POOL_BLOCKS - TEXT_POOL_FRAMES;

@@ -33,6 +33,17 @@ public final class ExternalByteArray extends ExternalArray {
         }
     }
 
+    public void set(long index, byte value) throws IOException {
+        checkIndex(index);
+        long blockId = blockOf(index);
+        BufferPool.Frame frame = pool.pin(blockId);
+        try {
+            frame.buffer().put(offsetOf(index), value);
+        } finally {
+            pool.unpin(blockId, true);
+        }
+    }
+
     public void read(long offset, byte[] dst, int len) throws IOException {
         Objects.checkFromIndexSize(offset, len, length());
         Objects.checkFromIndexSize(0, len, dst.length);
